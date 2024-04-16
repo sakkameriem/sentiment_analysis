@@ -1,0 +1,6 @@
+selenium
+facebook_scraper
+pymongo
+transformers
+torch
+numpy
