@@ -4,3 +4,6 @@ pymongo
 transformers
 torch
 numpy
+pandas
+IPython
+regex
