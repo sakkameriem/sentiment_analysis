@@ -1,20 +1,40 @@
-from transformers import BertTokenizerFast, BertConfig, BertForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import pandas as pd
+import numpy as np
 
-config = BertConfig.from_pretrained("C:/Users/LENOVO/tunbert/models/bert-google/bert/TunBERT_config.json")
+tokenizer = AutoTokenizer.from_pretrained("AhmedBou/TuniBert")
+model = AutoModelForSequenceClassification.from_pretrained("AhmedBou/TuniBert")
 
-model = BertForSequenceClassification.from_pretrained("C:/Users/LENOVO/tunbert/models/bert-google/bert/", config=config)
+batch_size = 1000
+input_file = 'Zitouna data.csv'
+output_file = 'Zitouna data labeled.csv'
 
-tokenizer = BertTokenizerFast.from_pretrained("C:/Users/LENOVO/tunbert/models/bert-google/bert", max_len=512)
+data_reader = pd.read_csv(input_file, chunksize=batch_size)
 
-text = "أسقط بانكة"
+results = pd.DataFrame(columns=["text", "logits", "label"])
+for chunk in data_reader:
+    batch_results = pd.DataFrame(columns=["text", "logits", "label"])
+    for i, row in chunk.iterrows():
+        text = row['text']
+        tokens = tokenizer(text, return_tensors="pt", max_length=512, truncation=True)
+        outputs = model(**tokens)
+        logits = outputs.logits.detach().numpy()
+        predictions = np.argmax(logits, axis=1)
+        sentiment_label = "neutral" if predictions[0] == 0 else "positive" if predictions[0] == 1 else "negative"
 
+        new_row = pd.DataFrame({
+            "text": [text],
+            "logits": [logits.tolist()],
+            "label": [sentiment_label]
+        })
 
-tokens = tokenizer(text, return_tensors="tf")
+        for col in chunk.columns:
+            if col != 'text':
+                new_row[col] = row[col]
 
+        batch_results = pd.concat([batch_results, new_row], ignore_index=True)
 
-outputs = model(**tokens)
-predictions = outputs.logits.argmax(dim=1)
+    results = pd.concat([results, batch_results], ignore_index=True)
 
-
-sentiment_label = "positive" if predictions.item() == 1 else "negative"
-print(f"Predicted sentiment: {sentiment_label}")
+display(results.head(20))
+results.to_csv(output_file, index=False)
