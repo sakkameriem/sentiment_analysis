@@ -24,7 +24,6 @@ for chunk in data_reader:
 
         new_row = pd.DataFrame({
             "text": [text],
-            "logits": [logits.tolist()],
             "label": [sentiment_label]
         })
 
@@ -35,6 +34,3 @@ for chunk in data_reader:
         batch_results = pd.concat([batch_results, new_row], ignore_index=True)
 
     results = pd.concat([results, batch_results], ignore_index=True)
-
-display(results.head(20))
-results.to_csv(output_file, index=False)
